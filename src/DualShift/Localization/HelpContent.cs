@@ -91,7 +91,7 @@ public static class HelpContent
         new("Jak fungují aktualizace",
             new Bullets(
                 "Při každém spuštění aplikace zkontroluje, jestli není novější verze DualShift nebo ovladačů ViGEmBus a HidHide.",
-                "Když je, ukáže upozornění a v nastavení se objeví tlačítko „Aktualizace“. Nic se neinstaluje samo.",
+                "Když je, ukáže upozornění. Aktualizuješ tady v nápovědě na kartě „Aktualizace a ovladače“ – nic se neinstaluje samo.",
                 "Ručně zkontroluješ aktualizace tlačítkem „Zkontrolovat aktualizace“ úplně nahoře v této nápovědě.",
                 "Ovladače se stahují z oficiálního GitHubu autora (Nefarius) a spustí se jen s jeho platným digitálním podpisem; aplikace se ověřuje kontrolním součtem zveřejněným na GitHubu.")),
 
@@ -180,7 +180,7 @@ public static class HelpContent
         new("How updates work",
             new Bullets(
                 "Every time it starts, the app checks for newer versions of DualShift and of the ViGEmBus and HidHide drivers.",
-                "If there is one, you get a notification and an “Updates” button appears in settings. Nothing is installed automatically.",
+                "If there is one, you get a notification. Update here in Help on the “Updates & drivers” card – nothing is installed automatically.",
                 "To check manually, use “Check for updates” at the very top of this help.",
                 "Drivers are downloaded from the author's official GitHub (Nefarius) and run only with his valid digital signature; the app itself is verified against the checksum published on GitHub.")),
 

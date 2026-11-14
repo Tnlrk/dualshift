@@ -28,7 +28,6 @@ public sealed class TrayContext : ApplicationContext
     private readonly ToolStripMenuItem _hideItem = new();
     private readonly ToolStripMenuItem _autostartItem = new();
     private readonly ToolStripMenuItem _installItem = new();
-    private readonly ToolStripMenuItem _updatesItem = new() { Visible = false };
     private readonly UpdateService _updates = new();
     private readonly ToolStripMenuItem _languageItem = new("Jazyk / Language");
     private readonly ToolStripMenuItem _langCs = new("Čeština");
@@ -110,11 +109,6 @@ public sealed class TrayContext : ApplicationContext
 
     private bool _updateNoticeShown;
 
-    private void OnUpdatesChanged()
-    {
-        _updatesItem.Visible = _updates.AnythingToDo;
-        _settingsForm?.SetUpdatesAvailable(_updates.AnythingToDo);
-    }
 
     private async Task<bool> OfferViGEmInstallAsync()
     {
@@ -280,9 +274,6 @@ public sealed class TrayContext : ApplicationContext
         _settingsItem.Font = new Font(_menu.Font, FontStyle.Bold);
         _settingsItem.Click += (_, _) => ShowSettings();
         _helpItem.Click += (_, _) => ShowHelp();
-        _updatesItem.Font = new Font(_menu.Font, FontStyle.Bold);
-        _updatesItem.Click += (_, _) => ShowHelp(scrollToUpdates: true);
-        _updates.Changed += OnUpdatesChanged;
         _langCs.Click += (_, _) => SetLanguage(Loc.Czech);
         _langEn.Click += (_, _) => SetLanguage(Loc.English);
         _languageItem.DropDownItems.Add(_langCs);
@@ -303,7 +294,6 @@ public sealed class TrayContext : ApplicationContext
 
         _menu.Items.Add(_statusHeader);
         _menu.Items.Add(_statusSeparator);
-        _menu.Items.Add(_updatesItem);
         _menu.Items.Add(_settingsItem);
         _menu.Items.Add(_helpItem);
         _menu.Items.Add(_vibrationItem);
@@ -320,7 +310,6 @@ public sealed class TrayContext : ApplicationContext
     {
         _settingsItem.Text = Loc.T("tray_settings");
         _helpItem.Text = Loc.T("tray_help");
-        _updatesItem.Text = Loc.T("tray_updates");
         _vibrationItem.Text = Loc.T("tray_vibration");
         _hideItem.Text = Loc.T("tray_hide");
         _autostartItem.Text = Loc.T("tray_autostart");
@@ -379,8 +368,6 @@ public sealed class TrayContext : ApplicationContext
             _settingsForm.StateProvider = id => _devices?.GetState(id);
             _settingsForm.SettingsChanged += (_, _) => OnSettingsChanged();
             _settingsForm.HelpRequested += (_, _) => ShowHelp();
-            _settingsForm.UpdatesRequested += (_, _) => ShowHelp(scrollToUpdates: true);
-            _settingsForm.SetUpdatesAvailable(_updates.AnythingToDo);
             _settingsForm.HiddenToTray += (_, _) => ShowTrayHintOnce();
             _settingsForm.LanguageRequested += (_, lang) => SetLanguage(lang);
             _settingsForm.TestRumbleRequested += (_, _) =>

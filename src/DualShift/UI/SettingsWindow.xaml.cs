@@ -39,8 +39,6 @@ public partial class SettingsWindow : Window
     public event EventHandler? TestRumbleRequested;
     /// <summary>Uživatel chce otevřít nápovědu.</summary>
     public event EventHandler? HelpRequested;
-    /// <summary>Uživatel kliknul na „Aktualizace“.</summary>
-    public event EventHandler? UpdatesRequested;
     /// <summary>Uživatel přepnul jazyk ("cs" / "en").</summary>
     public event EventHandler<string>? LanguageRequested;
     /// <summary>Okno se zavřelo křížkem a aplikace běží dál v liště.</summary>
@@ -69,7 +67,6 @@ public partial class SettingsWindow : Window
         Saturation.ValueChanged += (_, _) => ColorFromSliders();
         TestRumble.Click += (_, _) => TestRumbleRequested?.Invoke(this, EventArgs.Empty);
         HelpButton.Click += (_, _) => HelpRequested?.Invoke(this, EventArgs.Empty);
-        UpdatesButton.Click += (_, _) => UpdatesRequested?.Invoke(this, EventArgs.Empty);
         SyncLanguageButtons();
         LangCs.Checked += (_, _) => { if (Loc.Language != Loc.Czech) LanguageRequested?.Invoke(this, Loc.Czech); };
         LangEn.Checked += (_, _) => { if (Loc.Language != Loc.English) LanguageRequested?.Invoke(this, Loc.English); };
@@ -327,10 +324,6 @@ public partial class SettingsWindow : Window
     }
 
     // ------------------------------------------------------------------ okno
-
-    /// <summary>Zvýrazněné tlačítko „Aktualizace“ v záhlaví, když je co aktualizovat.</summary>
-    public void SetUpdatesAvailable(bool available) =>
-        UpdatesButton.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
 
     private void SyncLanguageButtons()
     {
