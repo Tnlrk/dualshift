@@ -1,3 +1,4 @@
+using DualShift.Updates;
 using DualShift.Localization;
 using System.Drawing;
 using System.Windows.Forms;
@@ -27,6 +28,8 @@ public sealed class TrayContext : ApplicationContext
     private readonly ToolStripMenuItem _hideItem = new();
     private readonly ToolStripMenuItem _autostartItem = new();
     private readonly ToolStripMenuItem _installItem = new();
+    private readonly ToolStripMenuItem _updatesItem = new() { Visible = false };
+    private readonly UpdateService _updates = new();
     private readonly ToolStripMenuItem _languageItem = new("Jazyk / Language");
     private readonly ToolStripMenuItem _langCs = new("Čeština");
     private readonly ToolStripMenuItem _langEn = new("English");
@@ -57,6 +60,12 @@ public sealed class TrayContext : ApplicationContext
         UpdateMenu();
         _tray = new NotifyIcon { ContextMenuStrip = _menu, Visible = true, Text = AppName };
         _tray.DoubleClick += (_, _) => ShowSettings();
+        _tray.BalloonTipClicked += (_, _) =>
+        {
+            if (!_updateNoticeShown) return;
+            _updateNoticeShown = false;
+            ShowHelp(scrollToUpdates: true);
+        };
         _saveTimer.Tick += (_, _) => { _saveTimer.Stop(); _settings.Save(); };
 
         UpdateTray();
@@ -86,10 +95,25 @@ public sealed class TrayContext : ApplicationContext
         RefreshInstalledCopy();
         if (!StartDevices())
         {
-            if (!await OfferViGEmInstallAsync()) return;
-            if (!StartDevices()) return;
+            if (await OfferViGEmInstallAsync()) StartDevices();
         }
-        await OfferHidHideOnceAsync();
+        if (_devices is not null) await OfferHidHideOnceAsync();
+
+        // Kontrola aktualizací jen při spuštění (a ručně tlačítkem v nápovědě).
+        await _updates.CheckAsync();
+        if (_updates.AnythingToDo)
+        {
+            _updateNoticeShown = true;
+            Notify(Loc.T("note_updatesTitle"), Loc.F("note_updatesText", _updates.Summary()), ToolTipIcon.Info, force: true);
+        }
+    }
+
+    private bool _updateNoticeShown;
+
+    private void OnUpdatesChanged()
+    {
+        _updatesItem.Visible = _updates.AnythingToDo;
+        _settingsForm?.SetUpdatesAvailable(_updates.AnythingToDo);
     }
 
     private async Task<bool> OfferViGEmInstallAsync()
@@ -109,10 +133,19 @@ public sealed class TrayContext : ApplicationContext
     {
         if (_busy) return false;
         _busy = true;
+        _updates.SetBusy(true);
+        // Instalace ViGEmBus přeinstalovává ovladač, který právě používáme – virtuální ovladače nejdřív uvolnit.
+        bool restartDevices = d == Dependency.ViGEmBus && _devices is not null;
+        if (restartDevices)
+        {
+            _devices!.Dispose();
+            _devices = null;
+        }
         try
         {
             Notify(Loc.T("note_installTitle"), Loc.F("note_installing", DependencyInstaller.DisplayName(d)), ToolTipIcon.Info, force: true);
-            var result = await DependencyInstaller.InstallAsync(d);
+            var component = d == Dependency.ViGEmBus ? UpdateComponent.ViGEmBus : UpdateComponent.HidHide;
+            var result = await DependencyInstaller.InstallAsync(d, _updates[component].Latest);
             if (!result.Success)
             {
                 MessageBox.Show(Loc.F("dlg_installFailed", DependencyInstaller.DisplayName(d), result.Error),
@@ -130,8 +163,66 @@ public sealed class TrayContext : ApplicationContext
         finally
         {
             _busy = false;
+            if (restartDevices) StartDevices();
+            _updates.SetBusy(false);
+            _updates.RefreshLocal();
             UpdateTray();
         }
+    }
+
+    /// <summary>Aktualizace samotné aplikace – po úspěchu se spustí nová verze a tahle skončí.</summary>
+    private async Task UpdateAppAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        _updates.SetBusy(true);
+        try
+        {
+            Notify(Loc.T("note_installTitle"), Loc.F("note_installing", "DualShift"), ToolTipIcon.Info, force: true);
+            var result = await _updates.UpdateAppAsync();
+            if (result.Success)
+            {
+                ExitThread();
+                return;
+            }
+            MessageBox.Show(Loc.F("dlg_updateFailed", result.Error), AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+        finally
+        {
+            _busy = false;
+            _updates.SetBusy(false);
+        }
+    }
+
+    private async Task FixLegacyUpdaterAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        _updates.SetBusy(true);
+        try
+        {
+            var tasks = _updates.LegacyTasks.ToList();
+            string? error = null;
+            bool ok = await Task.Run(() => LegacyUpdater.Fix(tasks, out error));
+            if (!ok) Notify("ViGEm", Loc.F("note_hidhideFailed", error), ToolTipIcon.Warning, force: true);
+        }
+        finally
+        {
+            _busy = false;
+            _updates.SetBusy(false);
+        }
+        await _updates.CheckAsync();
+    }
+
+    private async Task InstallComponentAsync(UpdateComponent c)
+    {
+        if (c == UpdateComponent.App)
+        {
+            await UpdateAppAsync();
+            return;
+        }
+        var d = UpdateService.AsDependency(c)!.Value;
+        if (await InstallAsync(d) && d == Dependency.ViGEmBus) StartDevices();
     }
 
     /// <summary>Vrací false, pokud chybí ovladač ViGEmBus.</summary>
@@ -189,6 +280,9 @@ public sealed class TrayContext : ApplicationContext
         _settingsItem.Font = new Font(_menu.Font, FontStyle.Bold);
         _settingsItem.Click += (_, _) => ShowSettings();
         _helpItem.Click += (_, _) => ShowHelp();
+        _updatesItem.Font = new Font(_menu.Font, FontStyle.Bold);
+        _updatesItem.Click += (_, _) => ShowHelp(scrollToUpdates: true);
+        _updates.Changed += OnUpdatesChanged;
         _langCs.Click += (_, _) => SetLanguage(Loc.Czech);
         _langEn.Click += (_, _) => SetLanguage(Loc.English);
         _languageItem.DropDownItems.Add(_langCs);
@@ -209,6 +303,7 @@ public sealed class TrayContext : ApplicationContext
 
         _menu.Items.Add(_statusHeader);
         _menu.Items.Add(_statusSeparator);
+        _menu.Items.Add(_updatesItem);
         _menu.Items.Add(_settingsItem);
         _menu.Items.Add(_helpItem);
         _menu.Items.Add(_vibrationItem);
@@ -225,6 +320,7 @@ public sealed class TrayContext : ApplicationContext
     {
         _settingsItem.Text = Loc.T("tray_settings");
         _helpItem.Text = Loc.T("tray_help");
+        _updatesItem.Text = Loc.T("tray_updates");
         _vibrationItem.Text = Loc.T("tray_vibration");
         _hideItem.Text = Loc.T("tray_hide");
         _autostartItem.Text = Loc.T("tray_autostart");
@@ -283,6 +379,8 @@ public sealed class TrayContext : ApplicationContext
             _settingsForm.StateProvider = id => _devices?.GetState(id);
             _settingsForm.SettingsChanged += (_, _) => OnSettingsChanged();
             _settingsForm.HelpRequested += (_, _) => ShowHelp();
+            _settingsForm.UpdatesRequested += (_, _) => ShowHelp(scrollToUpdates: true);
+            _settingsForm.SetUpdatesAvailable(_updates.AnythingToDo);
             _settingsForm.HiddenToTray += (_, _) => ShowTrayHintOnce();
             _settingsForm.LanguageRequested += (_, lang) => SetLanguage(lang);
             _settingsForm.TestRumbleRequested += (_, _) =>
@@ -305,14 +403,17 @@ public sealed class TrayContext : ApplicationContext
         Notify(Loc.T("note_trayHintTitle"), Loc.T("note_trayHintText"), ToolTipIcon.Info, force: true);
     }
 
-    private void ShowHelp()
+    private void ShowHelp(bool scrollToUpdates = false)
     {
         if (_helpWindow is null)
         {
-            _helpWindow = new HelpWindow();
+            _helpWindow = new HelpWindow(_updates);
             System.Windows.Forms.Integration.ElementHost.EnableModelessKeyboardInterop(_helpWindow);
+            _helpWindow.CheckRequested += async (_, _) => await _updates.CheckAsync();
+            _helpWindow.InstallRequested += async (_, c) => await InstallComponentAsync(c);
+            _helpWindow.FixLegacyRequested += async (_, _) => await FixLegacyUpdaterAsync();
         }
-        _helpWindow.ShowAndActivate();
+        _helpWindow.ShowAndActivate(scrollToUpdates);
     }
 
     private void SetLanguage(string lang)

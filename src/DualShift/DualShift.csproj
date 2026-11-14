@@ -26,9 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Oficiální instalátory ovladačů (BSD-3, nefarius) přibalené do exe pro instalaci na jiném PC. -->
-    <EmbeddedResource Include="Redist\ViGEmBus_Setup.exe" LogicalName="Redist.ViGEmBus_Setup.exe" />
-    <EmbeddedResource Include="Redist\HidHide_Setup.exe" LogicalName="Redist.HidHide_Setup.exe" />
     <EmbeddedResource Include="Assets\dualsense.png" LogicalName="Assets.dualsense.png" />
     <EmbeddedResource Include="Assets\app.ico" LogicalName="Assets.app.ico" />
   </ItemGroup>

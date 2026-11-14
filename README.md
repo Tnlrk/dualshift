@@ -22,6 +22,7 @@ so it works even in games that don't support PS5 controllers.
   Windows notifications for connect, disconnect, low battery and fully charged.
 - Optional hiding of the original controller from games (HidHide) to avoid doubled input.
 - Start with Windows.
+- **Updates** of the app and the drivers are checked at start-up (or manually in Help) and installed only when you click.
 - **Czech / English** UI – switch in the settings window (CZ | EN) or in the tray menu; defaults to the Windows language.
 - **Built-in help** – the “Help” button in settings or in the tray menu.
 
@@ -39,7 +40,8 @@ so it works even in games that don't support PS5 controllers.
 
 ## Installation (also on another PC)
 1. Download `DualShift.exe` from [Releases](https://github.com/Tnlrk/dualshift/releases/latest) (or copy it from a USB stick) and run it.
-2. If the **ViGEmBus** driver is missing, the app offers to install it (it is bundled; confirm the UAC prompt).
+2. If the **ViGEmBus** driver is missing, the app offers to install it – it downloads the latest version from the
+   [official GitHub](https://github.com/nefarius/ViGEmBus) and runs it only if it is validly signed by Nefarius (confirm the UAC prompt).
 3. On first start it also offers **HidHide** (hiding the original controller). A restart may be required after installing.
 4. Turn on **Start with Windows** in the tray menu. The exe is copied to `%LocalAppData%\DualShift`,
    so you can delete the original file.
@@ -61,12 +63,12 @@ dotnet test          # protocol tests (parser, output reports, CRC32, mapping, l
 ./build.ps1          # tests + portable dist\DualShift.exe
 ```
 Requires the .NET 8 SDK. Structure: `DualSense/` (HID protocol), `Bridge/` (ViGEm + device management), `HidHide/`,
-`Setup/` (bundled driver installers in `Redist/`), `Localization/` (CZ/EN texts and help), `UI/` (tray icon, WPF settings and help windows).
+`Setup/` (driver installation), `Updates/` (GitHub releases, signature check, self-update), `Localization/` (CZ/EN texts and help), `UI/` (tray icon, WPF settings and help windows).
 
 Render previews without running the app: `$env:PREVIEW_DIR="C:\some\folder"; dotnet test --filter PreviewRender`.
 
 ## Credits
-- [ViGEmBus](https://github.com/nefarius/ViGEmBus) and [HidHide](https://github.com/nefarius/HidHide) drivers by Nefarius Software Solutions (BSD-3-Clause), bundled installers.
+- [ViGEmBus](https://github.com/nefarius/ViGEmBus) and [HidHide](https://github.com/nefarius/HidHide) drivers by Nefarius Software Solutions (BSD-3-Clause), downloaded from their official releases.
 - [HidSharp](https://www.zer7.com/software/hidsharp) for HID access.
 - The DualSense product photo (`src/DualShift/Assets/dualsense.png`) is a third-party image used for illustration.
   PlayStation, DualSense and Xbox are trademarks of their respective owners; this project is not affiliated with Sony or Microsoft.

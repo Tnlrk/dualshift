@@ -1,3 +1,4 @@
+using DualShift.Updates;
 using DualShift.Localization;
 using System.Windows.Forms;
 using DualShift.HidHide;
@@ -18,6 +19,12 @@ internal static class Program
         // Krátce běžící elevovaná kopie pro změnu konfigurace HidHide.
         if (args.Length > 0 && args[0] == HidHideService.ElevatedArg)
             return HidHideService.RunElevatedCommand(args);
+        if (args.Length > 0 && args[0] == LegacyUpdater.ElevatedArg)
+            return LegacyUpdater.RunElevatedCommand(args);
+
+        // Po aktualizaci: počkat, až se stará verze ukončí, a uklidit po ní.
+        UpdateService.WaitForPreviousInstance(args);
+        UpdateService.CleanupAfterUpdate();
 
         Loc.SetLanguage(AppSettings.Load().Language);
         bool minimized = args.Contains(MinimizedArg, StringComparer.OrdinalIgnoreCase);

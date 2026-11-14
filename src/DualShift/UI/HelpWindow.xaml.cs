@@ -6,6 +6,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using DualShift.Localization;
+using DualShift.Updates;
 
 namespace DualShift.UI;
 
@@ -13,10 +14,22 @@ namespace DualShift.UI;
 public partial class HelpWindow : Window
 {
     private bool _allowClose;
+    private readonly UpdateService _updates;
+    private readonly Border _updatesCard;
 
-    public HelpWindow()
+    /// <summary>Ruční kontrola aktualizací.</summary>
+    public event EventHandler? CheckRequested;
+    /// <summary>Nainstalovat / aktualizovat součást.</summary>
+    public event EventHandler<UpdateComponent>? InstallRequested;
+    /// <summary>Odstranit zastaralou aktualizační úlohu ViGEm.</summary>
+    public event EventHandler? FixLegacyRequested;
+
+    public HelpWindow(UpdateService updates)
     {
+        _updates = updates;
         InitializeComponent();
+        _updatesCard = new Border { Style = (Style)FindResource("Card") };
+        _updates.Changed += () => Dispatcher.Invoke(BuildUpdatesCard);
         var work = SystemParameters.WorkArea;
         Height = Math.Min(Height, work.Height - 24);
         SourceInitialized += (_, _) => DarkTitleBar.Apply(this);
@@ -38,6 +51,13 @@ public partial class HelpWindow : Window
     {
         Toc.Children.Clear();
         Sections.Children.Clear();
+
+        // Aktualizace a ovladače jako první karta.
+        BuildUpdatesCard();
+        Sections.Children.Add(_updatesCard);
+        var updLink = new Button { Content = Loc.T("upd_title"), Margin = new Thickness(4), Padding = new Thickness(12, 6, 12, 6) };
+        updLink.Click += (_, _) => ScrollToUpdates();
+        Toc.Children.Add(updLink);
 
         foreach (var section in HelpContent.For(Loc.Language))
         {
@@ -135,11 +155,134 @@ public partial class HelpWindow : Window
         return grid;
     }
 
-    public void ShowAndActivate()
+    public void ShowAndActivate(bool scrollToUpdates = false)
     {
         Show();
         if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
         Activate();
+        if (scrollToUpdates) Dispatcher.BeginInvoke(ScrollToUpdates, System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
+    private void ScrollToUpdates() => _updatesCard.BringIntoView(new Rect(0, 0, 1, _updatesCard.ActualHeight));
+
+    // ------------------------------------------------------------------ aktualizace
+
+    private void BuildUpdatesCard()
+    {
+        var panel = new StackPanel();
+        panel.Children.Add(new TextBlock { Text = Loc.T("upd_title"), Style = (Style)FindResource("H2"), Margin = new Thickness(0, 0, 0, 4) });
+        panel.Children.Add(new TextBlock { Text = Loc.T("upd_subtitle"), Style = (Style)FindResource("Dim"), Margin = new Thickness(0, 0, 0, 12) });
+
+        bool locked = _updates.IsBusy || _updates.IsChecking;
+        foreach (var s in _updates.All)
+            panel.Children.Add(ComponentRow(s, locked));
+
+        if (_updates.LegacyTasks.Count > 0)
+            panel.Children.Add(LegacyRow(locked));
+
+        // Ruční kontrola + stav poslední kontroly.
+        var footer = new DockPanel { Margin = new Thickness(0, 12, 0, 0) };
+        var check = new Button
+        {
+            Content = Loc.T(_updates.IsChecking ? "upd_checking" : "upd_check"),
+            IsEnabled = !locked,
+        };
+        check.Click += (_, _) => CheckRequested?.Invoke(this, EventArgs.Empty);
+        footer.Children.Add(check);
+        string info = _updates.LastError is { } err ? Loc.F("upd_checkFailed", err)
+            : _updates.LastCheck is { } t ? Loc.F("upd_lastCheck", t)
+            : Loc.T("upd_notChecked");
+        footer.Children.Add(new TextBlock
+        {
+            Text = info, Style = (Style)FindResource("Dim"), VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(12, 0, 0, 0),
+        });
+        panel.Children.Add(footer);
+
+        _updatesCard.Child = panel;
+    }
+
+    private UIElement ComponentRow(ComponentStatus s, bool locked)
+    {
+        var row = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var text = new StackPanel();
+        string desc = s.Kind switch
+        {
+            UpdateComponent.App => Loc.T("upd_app_desc"),
+            UpdateComponent.ViGEmBus => Loc.T("upd_vigem_desc"),
+            _ => Loc.T("upd_hidhide_desc"),
+        };
+        text.Children.Add(new TextBlock { Text = $"{UpdateService.Name(s.Kind)} – {desc}", FontWeight = FontWeights.SemiBold });
+
+        string installed = !s.Installed ? Loc.T("upd_notInstalled")
+            : Loc.F("upd_installed", s.InstalledVersion is { } v ? UpdateService.Short(v) : Loc.T("upd_unknownVersion"));
+        string latest = s.Latest is { } r ? " · " + Loc.F("upd_latest", UpdateService.Short(r.Version)) : "";
+        text.Children.Add(new TextBlock
+        {
+            Text = installed + latest,
+            Foreground = (Brush)FindResource(s.UpdateAvailable || !s.Installed ? "Accent" : "TextDim"),
+            FontSize = 12,
+            Margin = new Thickness(0, 2, 0, 0),
+        });
+        row.Children.Add(text);
+
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        if (!s.Installed || s.UpdateAvailable)
+        {
+            var action = new Button
+            {
+                Content = Loc.T(s.Installed ? "upd_update" : "upd_install"),
+                Background = (Brush)FindResource("Accent"),
+                IsEnabled = !locked && (s.Kind != UpdateComponent.App || s.Latest is not null),
+                Margin = new Thickness(8, 0, 0, 0),
+            };
+            action.Click += (_, _) => InstallRequested?.Invoke(this, s.Kind);
+            buttons.Children.Add(action);
+        }
+        else if (s.Latest is not null)
+        {
+            buttons.Children.Add(new TextBlock
+            {
+                Text = "✓ " + Loc.T("upd_upToDate"), Foreground = (Brush)FindResource("TextDim"),
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0),
+            });
+        }
+        string page = s.Latest?.PageUrl ?? (UpdateService.AsDependency(s.Kind) is { } d
+            ? Setup.DependencyInstaller.ProjectPage(d)
+            : $"https://github.com/{UpdateService.AppRepo}/releases/latest");
+        var link = new Button { Content = Loc.T("upd_page"), Margin = new Thickness(8, 0, 0, 0) };
+        link.Click += (_, _) => GitHub.OpenPage(page);
+        buttons.Children.Add(link);
+        Grid.SetColumn(buttons, 1);
+        row.Children.Add(buttons);
+        return row;
+    }
+
+    private UIElement LegacyRow(bool locked)
+    {
+        var box = new Border
+        {
+            Background = new SolidColorBrush(Color.FromArgb(0x33, 0xF5, 0xA6, 0x23)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(0xF5, 0xA6, 0x23)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(12, 10, 12, 10),
+            Margin = new Thickness(0, 8, 0, 4),
+        };
+        var row = new DockPanel();
+        var fix = new Button { Content = Loc.T("upd_fix"), IsEnabled = !locked, Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        fix.Click += (_, _) => FixLegacyRequested?.Invoke(this, EventArgs.Empty);
+        DockPanel.SetDock(fix, Dock.Right);
+        row.Children.Add(fix);
+        var text = new StackPanel();
+        text.Children.Add(new TextBlock { Text = "⚠ " + Loc.T("upd_legacyTitle"), FontWeight = FontWeights.SemiBold });
+        text.Children.Add(new TextBlock { Text = Loc.T("upd_legacyText"), Style = (Style)FindResource("Dim"), Margin = new Thickness(0, 2, 0, 0) });
+        row.Children.Add(text);
+        box.Child = row;
+        return box;
     }
 
     public void CloseForReal()

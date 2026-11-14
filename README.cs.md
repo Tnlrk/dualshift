@@ -21,6 +21,7 @@ Aplikace v oznamovací oblasti (vedle hodin), která z PS5 ovladače **DualSense
   Windows tě upozorní na připojení, odpojení, slabou baterii a plné nabití.
 - Volitelné skrytí originálního ovladače před hrami (HidHide), aby se vstupy nezdvojovaly.
 - Spouštění s Windows.
+- **Aktualizace** aplikace i ovladačů se kontrolují při spuštění (nebo ručně v nápovědě) a instalují se jen po kliknutí.
 - **Čeština / English** – přepínač jazyka v okně nastavení (CZ | EN) i v menu v liště; výchozí podle jazyka Windows.
 - **Nápověda přímo v aplikaci** – tlačítko „Nápověda“ v nastavení nebo v menu v liště.
 
@@ -38,7 +39,8 @@ Aplikace v oznamovací oblasti (vedle hodin), která z PS5 ovladače **DualSense
 
 ## Instalace (i na jiný PC)
 1. Stáhni `DualShift.exe` z [Releases](https://github.com/Tnlrk/dualshift/releases/latest) (nebo ho zkopíruj třeba z flashky) a spusť ho.
-2. Pokud na PC chybí ovladač **ViGEmBus**, aplikace ho nabídne nainstalovat (je přibalený, potvrdíš UAC).
+2. Pokud na PC chybí ovladač **ViGEmBus**, aplikace ho nabídne nainstalovat – stáhne nejnovější verzi z
+   [oficiálního GitHubu](https://github.com/nefarius/ViGEmBus) a spustí ji jen s platným podpisem Nefarius (potvrdíš UAC).
 3. Při prvním spuštění nabídne i **HidHide** (skrývání originálu). Po instalaci může být potřeba restart.
 4. V menu v liště zapni **Spouštět s Windows**. Exe se zkopíruje do `%LocalAppData%\DualShift`,
    takže původní soubor můžeš smazat.
@@ -60,12 +62,12 @@ dotnet test          # testy protokolu (parser, výstupní reporty, CRC32, mapov
 ./build.ps1          # testy + přenosný dist\DualShift.exe
 ```
 Potřebuješ .NET 8 SDK. Struktura: `DualSense/` (HID protokol), `Bridge/` (ViGEm + správa zařízení), `HidHide/`,
-`Setup/` (přibalené instalátory ovladačů v `Redist/`), `Localization/` (texty CZ/EN a nápověda), `UI/` (ikona v liště, okna nastavení a nápovědy ve WPF).
+`Setup/` (instalace ovladačů), `Updates/` (vydání na GitHubu, ověření podpisu, aktualizace aplikace), `Localization/` (texty CZ/EN a nápověda), `UI/` (ikona v liště, okna nastavení a nápovědy ve WPF).
 
 Náhledy vykreslení (bez spuštění aplikace): `$env:PREVIEW_DIR="C:\nejaka\slozka"; dotnet test --filter PreviewRender`.
 
 ## Poděkování
-- Ovladače [ViGEmBus](https://github.com/nefarius/ViGEmBus) a [HidHide](https://github.com/nefarius/HidHide) od Nefarius Software Solutions (BSD-3-Clause), přibalené instalátory.
+- Ovladače [ViGEmBus](https://github.com/nefarius/ViGEmBus) a [HidHide](https://github.com/nefarius/HidHide) od Nefarius Software Solutions (BSD-3-Clause), stahované z jejich oficiálních vydání.
 - [HidSharp](https://www.zer7.com/software/hidsharp) pro přístup k HID.
 - Produktová fotka DualSense (`src/DualShift/Assets/dualsense.png`) je obrázek třetí strany použitý pro ilustraci.
   PlayStation, DualSense a Xbox jsou ochranné známky svých vlastníků; projekt není spojený se Sony ani Microsoftem.

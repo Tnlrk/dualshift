@@ -33,6 +33,10 @@
                             <RadioButton x:Name="LangEn" Style="{StaticResource Segment}" GroupName="lang" Content="EN" MinWidth="40" ToolTip="English"/>
                         </StackPanel>
                     </Border>
+                    <Button x:Name="UpdatesButton" Margin="8,0,0,0" Padding="14,8" Visibility="Collapsed"
+                            Background="{StaticResource Accent}">
+                        <TextBlock Text="{Binding [sw_updates], Source={x:Static loc:Loc.Instance}}" FontWeight="SemiBold" Foreground="White"/>
+                    </Button>
                     <Button x:Name="HelpButton" Margin="8,0,0,0" Padding="14,8">
                         <StackPanel Orientation="Horizontal">
                             <Border Width="18" Height="18" CornerRadius="9" Background="{StaticResource Accent}" Margin="0,0,8,0">

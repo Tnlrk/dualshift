@@ -42,7 +42,7 @@ public static class HelpContent
             new Bullets(
                 "Bluetooth: Nastavení Windows → Bluetooth a zařízení → Přidat zařízení. Na ovladači podrž Create + PS, dokud lišta nezačne rychle blikat.",
                 "USB: stačí připojit kabel.",
-                "Pokud na počítači chybí ovladač ViGEmBus, aplikace ho sama nabídne nainstalovat (je přibalený, Windows se zeptá na práva správce).",
+                "Pokud na počítači chybí ovladač ViGEmBus, aplikace ho nabídne nainstalovat: stáhne nejnovější verzi z oficiálního GitHubu autora a před spuštěním ověří podpis (Windows se zeptá na práva správce).",
                 "Volitelně nabídne i HidHide, který skryje originální PS5 ovladač před hrami (viz níže).")),
 
         new("Ikona v liště",
@@ -88,6 +88,13 @@ public static class HelpContent
                 "Hry s nativní podporou PS5 (vč. adaptivních triggerů od hry) ho pak neuvidí. Pro ně skrývání vypni.",
                 "Pokud hra už běží, po zapnutí skrytí ji restartuj.")),
 
+        new("Jak fungují aktualizace",
+            new Bullets(
+                "Při každém spuštění aplikace zkontroluje, jestli není novější verze DualShift nebo ovladačů ViGEmBus a HidHide.",
+                "Když je, ukáže upozornění a v nastavení se objeví tlačítko „Aktualizace“. Nic se neinstaluje samo.",
+                "Ručně zkontroluješ aktualizace tlačítkem „Zkontrolovat aktualizace“ úplně nahoře v této nápovědě.",
+                "Ovladače se stahují z oficiálního GitHubu autora (Nefarius) a spustí se jen s jeho platným digitálním podpisem; aplikace se ověřuje kontrolním součtem zveřejněným na GitHubu.")),
+
         new("Steam",
             new Text("Steam umí PS5 ovladač zachytávat také. Pokud hraješ přes Steam a vstupy jsou zdvojené, " +
                      "vypni v nastavení Steamu → Ovladač podporu PlayStation ovladačů, nebo zapni skrytí originálu.")),
@@ -95,7 +102,7 @@ public static class HelpContent
         new("Jiný počítač a spouštění s Windows",
             new Bullets(
                 "Celá aplikace je jeden soubor DualShift.exe – stačí ho zkopírovat a spustit. .NET instalovat není potřeba.",
-                "Chybějící ovladače (ViGEmBus, HidHide) jsou přibalené a aplikace je sama nabídne.",
+                "Chybějící ovladače (ViGEmBus, HidHide) aplikace sama nabídne stáhnout a nainstalovat – potřebuješ jen internet.",
                 "„Spouštět s Windows“ v menu zkopíruje aplikaci do složky AppData a zapne automatické spuštění.")),
 
         new("Řešení problémů",
@@ -124,7 +131,7 @@ public static class HelpContent
             new Bullets(
                 "Bluetooth: Windows Settings → Bluetooth & devices → Add device. Hold Create + PS on the controller until the light bar blinks quickly.",
                 "USB: just plug in the cable.",
-                "If the ViGEmBus driver is missing, the app offers to install it (it is bundled; Windows asks for administrator permission).",
+                "If the ViGEmBus driver is missing, the app offers to install it: it downloads the latest version from the author's official GitHub and verifies the signature before running it (Windows asks for administrator permission).",
                 "It can also offer HidHide, which hides the original PS5 controller from games (see below).")),
 
         new("Tray icon",
@@ -170,6 +177,13 @@ public static class HelpContent
                 "Games with native PS5 support (including adaptive triggers from the game) won't see it either. Turn hiding off for them.",
                 "If a game is already running, restart it after enabling hiding.")),
 
+        new("How updates work",
+            new Bullets(
+                "Every time it starts, the app checks for newer versions of DualShift and of the ViGEmBus and HidHide drivers.",
+                "If there is one, you get a notification and an “Updates” button appears in settings. Nothing is installed automatically.",
+                "To check manually, use “Check for updates” at the very top of this help.",
+                "Drivers are downloaded from the author's official GitHub (Nefarius) and run only with his valid digital signature; the app itself is verified against the checksum published on GitHub.")),
+
         new("Steam",
             new Text("Steam can capture the PS5 controller too. If you play through Steam and the input is doubled, " +
                      "turn off PlayStation controller support in Steam → Settings → Controller, or enable hiding the original.")),
@@ -177,7 +191,7 @@ public static class HelpContent
         new("Another PC and starting with Windows",
             new Bullets(
                 "The whole app is a single DualShift.exe file – just copy it and run it. No need to install .NET.",
-                "Missing drivers (ViGEmBus, HidHide) are bundled and the app offers to install them.",
+                "The app offers to download and install missing drivers (ViGEmBus, HidHide) – you just need an internet connection.",
                 "“Start with Windows” in the menu copies the app to the AppData folder and enables automatic start.")),
 
         new("Troubleshooting",

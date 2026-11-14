@@ -50,7 +50,7 @@ public class PreviewRender
 
     private static void RenderHelp(string path)
     {
-        var w = new HelpWindow
+        var w = new HelpWindow(new DualShift.Updates.UpdateService())
         {
             WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
             Left = -5000,

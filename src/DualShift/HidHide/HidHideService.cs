@@ -31,36 +31,8 @@ public static class HidHideService
     }
 
     /// <summary>Spustí elevovanou kopii aplikace. Vrací true při úspěchu.</summary>
-    public static bool RunElevated(bool hide, IEnumerable<string> instanceIds, out string? error)
-    {
-        error = null;
-        var args = new List<string> { ElevatedArg, hide ? "hide" : "unhide" };
-        args.AddRange(instanceIds);
-
-        try
-        {
-            var psi = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true, Verb = "runas" };
-            foreach (var a in args) psi.ArgumentList.Add(a);
-            using var p = Process.Start(psi);
-            if (p is null || !p.WaitForExit(30_000))
-            {
-                error = Loc.T("hh_notStarted");
-                return false;
-            }
-            if (p.ExitCode != 0) error = Loc.F("hh_failed", p.ExitCode);
-            return p.ExitCode == 0;
-        }
-        catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
-        {
-            error = Loc.T("hh_uacDenied");
-            return false;
-        }
-        catch (Exception ex)
-        {
-            error = ex.Message;
-            return false;
-        }
-    }
+    public static bool RunElevated(bool hide, IEnumerable<string> instanceIds, out string? error) =>
+        Updates.Elevated.RunSelf(new[] { ElevatedArg, hide ? "hide" : "unhide" }.Concat(instanceIds), out error);
 
     /// <summary>
     /// Elevovaný proces smí skrývat jen DualSense (Sony 054C, PID 0CE6 / 0DF2) –
