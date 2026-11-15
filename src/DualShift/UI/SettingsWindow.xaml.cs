@@ -28,6 +28,8 @@ public partial class SettingsWindow : Window
     private bool _loading;
     private bool _allowClose;
 
+    private static readonly int[] IdleChoices = { 10, 15, 30, 60 };
+
     private static readonly int[] SwatchColors =
     {
         0x0040FF, 0x00B4FF, 0x00E676, 0xB4FF00, 0xFFD000, 0xFF6A00, 0xFF0000, 0xFF2D9A, 0x8A2BFF, 0xFFFFFF,
@@ -53,9 +55,10 @@ public partial class SettingsWindow : Window
         _painter.Background = SD.Color.FromArgb(0x24, 0x27, 0x2E);
 
         BuildSwatches();
+        BuildIdleChoices();
         LoadFromSettings();
 
-        foreach (var cb in new[] { Vibration, TriggerRumble, TriggerRumbleOnlyPressed, LightbarOn, LowBattery, PlayerLeds, Touchpad, Notifications })
+        foreach (var cb in new[] { Vibration, TriggerRumble, TriggerRumbleOnlyPressed, LightbarOn, LowBattery, PlayerLeds, Touchpad, Notifications, IdleOff })
         {
             cb.Checked += (_, _) => Commit();
             cb.Unchecked += (_, _) => Commit();
@@ -116,6 +119,9 @@ public partial class SettingsWindow : Window
         PlayerLeds.IsChecked = _settings.PlayerLeds;
         Touchpad.IsChecked = _settings.TouchpadAsBack;
         Notifications.IsChecked = _settings.Notifications;
+        IdleOff.IsChecked = _settings.IdlePowerOff;
+        foreach (var rb in IdleMinutes.Children.OfType<RadioButton>())
+            rb.IsChecked = (int)rb.Tag == _settings.IdlePowerOffMinutes;
         _loading = false;
         SyncDependentUi();
     }
@@ -137,6 +143,9 @@ public partial class SettingsWindow : Window
         _settings.PlayerLeds = PlayerLeds.IsChecked == true;
         _settings.TouchpadAsBack = Touchpad.IsChecked == true;
         _settings.Notifications = Notifications.IsChecked == true;
+        _settings.IdlePowerOff = IdleOff.IsChecked == true;
+        if (IdleMinutes.Children.OfType<RadioButton>().FirstOrDefault(r => r.IsChecked == true) is { } sel)
+            _settings.IdlePowerOffMinutes = (int)sel.Tag;
         SyncDependentUi();
         SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -164,6 +173,8 @@ public partial class SettingsWindow : Window
     private void SyncDependentUi()
     {
         TriggerRumbleOnlyPressed.IsEnabled = TriggerRumble.IsChecked == true;
+        IdleMinutesBox.IsEnabled = IdleOff.IsChecked == true;
+        IdleMinutesBox.Opacity = IdleOff.IsChecked == true ? 1 : 0.4;
 
         bool on = LightbarOn.IsChecked == true;
         LightbarControls.IsEnabled = on;
@@ -183,6 +194,22 @@ public partial class SettingsWindow : Window
         int previewAlpha = _settings.LightbarEnabled ? 60 + 195 * _settings.LightbarBrightness / 100 : 0;
         _painter.Lightbar = SD.Color.FromArgb(previewAlpha, SD.Color.FromArgb(_settings.LightbarColor | unchecked((int)0xFF000000)));
         _lastFrameKey = null;
+    }
+
+    private void BuildIdleChoices()
+    {
+        foreach (int m in IdleChoices)
+        {
+            var rb = new RadioButton
+            {
+                Style = (Style)FindResource("Segment"),
+                GroupName = "idle",
+                Content = $"{m} min",
+                Tag = m,
+            };
+            rb.Checked += (_, _) => Commit();
+            IdleMinutes.Children.Add(rb);
+        }
     }
 
     private void BuildSwatches()

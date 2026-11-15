@@ -28,6 +28,8 @@ public sealed class TrayContext : ApplicationContext
     private readonly ToolStripMenuItem _hideItem = new();
     private readonly ToolStripMenuItem _autostartItem = new();
     private readonly ToolStripMenuItem _installItem = new();
+    private readonly ToolStripMenuItem _powerOffItem = new() { Visible = false };
+    private readonly HashSet<string> _idlePoweredOff = new(StringComparer.OrdinalIgnoreCase);
     private readonly UpdateService _updates = new();
     private readonly ToolStripMenuItem _languageItem = new("Jazyk / Language");
     private readonly ToolStripMenuItem _langCs = new("Čeština");
@@ -236,6 +238,7 @@ public sealed class TrayContext : ApplicationContext
 
         _devices.ControllerConnected += OnConnected;
         _devices.ControllerDisconnected += OnDisconnected;
+        _devices.ControllerIdlePoweredOff += c => _idlePoweredOff.Add(c.Id);
         _devices.ControllerStatusChanged += OnStatusChanged;
         _devices.ControllerInaccessible += OnInaccessible;
         _devices.Scan();
@@ -288,6 +291,11 @@ public sealed class TrayContext : ApplicationContext
         };
         _hideItem.Click += async (_, _) => await SetHideOriginalAsync(!_settings.HideOriginal);
         _autostartItem.Click += (_, _) => ToggleAutostart();
+        _powerOffItem.Click += (_, _) =>
+        {
+            if (_devices is { } d && d.PowerOffAll() == 0)
+                Notify(Loc.T("tray_powerOff"), Loc.T("note_powerOffFailed"), ToolTipIcon.Warning, force: true);
+        };
         _installItem.Click += async (_, _) =>
         {
             if (await InstallAsync(Dependency.ViGEmBus)) StartDevices();
@@ -301,6 +309,7 @@ public sealed class TrayContext : ApplicationContext
         _menu.Items.Add(_hideItem);
         _menu.Items.Add(_autostartItem);
         _menu.Items.Add(_installItem);
+        _menu.Items.Add(_powerOffItem);
         _menu.Items.Add(_languageItem);
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(_exitItem);
@@ -315,6 +324,8 @@ public sealed class TrayContext : ApplicationContext
         _hideItem.Text = Loc.T("tray_hide");
         _autostartItem.Text = Loc.T("tray_autostart");
         _installItem.Text = Loc.T("tray_installVigem");
+        _powerOffItem.Text = Loc.T("tray_powerOff");
+        _powerOffItem.Visible = _devices?.AnyCanPowerOff == true;
         _exitItem.Text = Loc.T("tray_exit");
         _langCs.Checked = Loc.Language == Loc.Czech;
         _langEn.Checked = Loc.Language == Loc.English;
@@ -543,7 +554,10 @@ public sealed class TrayContext : ApplicationContext
 
     private void OnDisconnected(ControllerStatus c)
     {
-        Notify(Loc.F("note_disconnectedTitle", c.Name), Loc.F("note_disconnectedText", Describe.Connection(c.Connection)), ToolTipIcon.None);
+        if (_idlePoweredOff.Remove(c.Id))
+            Notify(Loc.T("note_idleOffTitle"), Loc.F("note_idleOffText", c.Name, _settings.IdlePowerOffMinutes), ToolTipIcon.Info);
+        else
+            Notify(Loc.F("note_disconnectedTitle", c.Name), Loc.F("note_disconnectedText", Describe.Connection(c.Connection)), ToolTipIcon.None);
         _lowBatteryNotified.Remove(c.Id);
         _lastCharging.Remove(c.Id);
         UpdateTray();

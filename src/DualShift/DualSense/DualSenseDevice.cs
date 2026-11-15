@@ -15,6 +15,7 @@ public sealed class DualSenseDevice : IDisposable
 
     private const byte FeatureCalibration = 0x05;
     private const byte FeatureFirmwareInfo = 0x20;
+    private const byte FeaturePairingInfo = 0x09;
 
     private readonly HidDevice _device;
     private readonly HidStream _stream;
@@ -33,6 +34,15 @@ public sealed class DualSenseDevice : IDisposable
     public string DevicePath => _device.DevicePath;
     public ConnectionType Connection { get; }
     public bool IsEdge => _device.ProductID == DualSenseEdgeProductId;
+
+    /// <summary>Bluetooth adresa ovladače (jen u Bluetooth, zjistí se při startu čtení).</summary>
+    public ulong? BluetoothAddress { get; private set; }
+
+    /// <summary>Jde ovladač vypnout z počítače? (Jen přes Bluetooth – přes USB se nabíjí.)</summary>
+    public bool CanPowerOff => Connection == ConnectionType.Bluetooth && BluetoothAddress is not null;
+
+    /// <summary>Vypne ovladač odpojením Bluetooth spojení. Vrací false, když to nejde.</summary>
+    public bool PowerOff() => BluetoothAddress is { } a && BluetoothControl.Disconnect(a);
     public string DisplayName => IsEdge ? "DualSense Edge" : "DualSense";
 
     /// <summary>true, jakmile se zařízení odpojilo nebo bylo uvolněno.</summary>
@@ -101,6 +111,24 @@ public sealed class DualSenseDevice : IDisposable
         }
     }
 
+    /// <summary>Feature report 0x09 nese adresu ovladače (6 bajtů od konce, little-endian).</summary>
+    private ulong? ReadBluetoothAddress()
+    {
+        try
+        {
+            var buf = new byte[Math.Max(_device.GetMaxFeatureReportLength(), 20)];
+            buf[0] = FeaturePairingInfo;
+            _stream.GetFeature(buf);
+            ulong a = 0;
+            for (int i = 0; i < 6; i++) a |= (ulong)buf[1 + i] << (8 * i);
+            return a == 0 ? null : a;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     /// <summary>
     /// Firmware 2.21+ (a všechny Edge) používají nový příznak vibrací.
     /// Vrací null, když verzi nejde zjistit – pak se posílají oba příznaky.
@@ -129,7 +157,10 @@ public sealed class DualSenseDevice : IDisposable
             // Úvodní komunikace (může u Bluetooth chvíli trvat) běží tady, ne na UI vlákně.
             _vibrationV2 = ReadVibrationV2();
             if (Connection == ConnectionType.Bluetooth)
+            {
+                BluetoothAddress = ReadBluetoothAddress();
                 RequestFullReports();
+            }
             if (_disposed) return;
             _writer!.Start();
 

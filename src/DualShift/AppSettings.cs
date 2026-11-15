@@ -26,6 +26,10 @@ public sealed class AppSettings
     // Ovládání
     public bool TouchpadAsBack { get; set; } = true;
 
+    // Vypnout ovladač po nečinnosti (jen Bluetooth), jako to dělá PS5.
+    public bool IdlePowerOff { get; set; } = true;
+    public int IdlePowerOffMinutes { get; set; } = 15;
+
     // Jazyk: "cs" / "en"; null = podle Windows
     public string? Language { get; set; }
 
@@ -48,6 +52,7 @@ public sealed class AppSettings
         HiddenInstanceIds ??= new();
         LightbarColor &= 0xFFFFFF;
         LightbarBrightness = Math.Clamp(LightbarBrightness, 1, 100);
+        IdlePowerOffMinutes = Math.Clamp(IdlePowerOffMinutes, 5, 120);
         return this;
     }
 

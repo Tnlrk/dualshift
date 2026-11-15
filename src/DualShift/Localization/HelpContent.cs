@@ -112,7 +112,8 @@ public static class HelpContent
                 "Nevibruje – zkontroluj vibrace v nastavení hry a přepínač „Vibrace ze hry“; vyzkoušej tlačítkem „Vyzkoušet vibrace“.",
                 "Baterie ukazuje „zjišťuji…“ – u Bluetooth to po připojení chvíli trvá.",
                 "„Ovladač nejde otevřít“ – odpoj a znovu připoj ovladač; pomůže i restart aplikace.",
-                "Ikona s červeným vykřičníkem – nainstaluj ViGEmBus z menu v liště.")),
+                "Ikona s červeným vykřičníkem – nainstaluj ViGEmBus z menu v liště.",
+                "Ovladač se rychle vybíjí – nech zapnuté „Vypnout ovladač po nečinnosti“ (sekce Ostatní) a případně ztlum světelnou lištu. Ručně ho vypneš v menu v liště → „Vypnout ovladač“.")),
     };
 
     private static readonly Section[] English =
@@ -201,6 +202,7 @@ public static class HelpContent
                 "No vibration – check vibration in the game's settings and the “Vibration from games” switch; try “Test vibration”.",
                 "Battery shows “checking…” – over Bluetooth it takes a moment after connecting.",
                 "“Cannot open the controller” – disconnect and reconnect the controller; restarting the app also helps.",
-                "Icon with a red exclamation mark – install ViGEmBus from the tray menu.")),
+                "Icon with a red exclamation mark – install ViGEmBus from the tray menu.",
+                "The battery drains quickly – keep “Turn the controller off when idle” on (Other section) and consider dimming the light bar. Turn it off manually from the tray menu → “Turn controller off”.")),
     };
 }

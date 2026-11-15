@@ -20,6 +20,7 @@ public sealed class DeviceManager : IDisposable
     private readonly Dictionary<string, ControllerBridge> _bridges = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _failedPaths = new(StringComparer.OrdinalIgnoreCase);
     private readonly System.Windows.Forms.Timer _pollTimer;
+    private readonly System.Windows.Forms.Timer _idleTimer;
     private AppSettings _settings;
     private bool _scanQueued;
     private bool _disposed;
@@ -32,6 +33,8 @@ public sealed class DeviceManager : IDisposable
     /// Hlásí se jednou; další pokusy o otevření probíhají potichu.
     /// </summary>
     public event Action<string>? ControllerInaccessible;
+    /// <summary>Ovladač byl vypnut kvůli nečinnosti (volá se před odpojením).</summary>
+    public event Action<ControllerStatus>? ControllerIdlePoweredOff;
 
     /// <exception cref="Nefarius.ViGEm.Client.Exceptions.VigemBusNotFoundException">Chybí ovladač ViGEmBus.</exception>
     public DeviceManager(AppSettings settings)
@@ -44,6 +47,28 @@ public sealed class DeviceManager : IDisposable
         _pollTimer = new System.Windows.Forms.Timer { Interval = IdlePollMs };
         _pollTimer.Tick += (_, _) => Scan();
         _pollTimer.Start();
+
+        _idleTimer = new System.Windows.Forms.Timer { Interval = 30_000 };
+        _idleTimer.Tick += (_, _) => CheckIdle();
+        _idleTimer.Start();
+    }
+
+    /// <summary>Lze aspoň jeden ovladač vypnout z počítače (Bluetooth)?</summary>
+    public bool AnyCanPowerOff => _bridges.Values.Any(b => b.Device.CanPowerOff);
+
+    /// <summary>Vypne všechny ovladače připojené přes Bluetooth. Vrací počet vypnutých.</summary>
+    public int PowerOffAll() => _bridges.Values.Count(b => b.Device.CanPowerOff && b.Device.PowerOff());
+
+    private void CheckIdle()
+    {
+        if (_disposed || !_settings.IdlePowerOff) return;
+        var limit = TimeSpan.FromMinutes(_settings.IdlePowerOffMinutes);
+        foreach (var b in _bridges.Values.ToList())
+        {
+            if (!b.Device.CanPowerOff || b.IdleFor < limit) continue;
+            var status = b.Status;
+            if (b.Device.PowerOff()) ControllerIdlePoweredOff?.Invoke(status);
+        }
     }
 
     public IReadOnlyList<ControllerStatus> Controllers =>
@@ -136,6 +161,7 @@ public sealed class DeviceManager : IDisposable
         _disposed = true;
         DeviceList.Local.Changed -= OnDeviceListChanged;
         _pollTimer.Dispose();
+        _idleTimer.Dispose();
         foreach (var b in _bridges.Values) b.Dispose();
         _bridges.Clear();
         _client.Dispose();

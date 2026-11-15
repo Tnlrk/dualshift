@@ -22,6 +22,8 @@ public sealed class ControllerBridge : IDisposable
     private int? _battery;
     private ChargingState _charging = ChargingState.Unknown;
     private DateTime _testRumbleUntil = DateTime.MinValue;
+    private DualSenseState _activityRef;
+    private long _lastActivityTicks = Environment.TickCount64;
 
     public DualSenseDevice Device { get; }
 
@@ -69,9 +71,19 @@ public sealed class ControllerBridge : IDisposable
         get { lock (_stateLock) return _lastState; }
     }
 
+    /// <summary>Jak dlouho se s ovladačem nic nedělo (tlačítka, páčky, triggery, vibrace ze hry).</summary>
+    public TimeSpan IdleFor => TimeSpan.FromMilliseconds(Environment.TickCount64 - Interlocked.Read(ref _lastActivityTicks));
+
+    private void MarkActive() => Interlocked.Exchange(ref _lastActivityTicks, Environment.TickCount64);
+
     private void OnState(DualSenseDevice _, DualSenseState state)
     {
         lock (_stateLock) _lastState = state;
+        if (Activity.IsActivity(_activityRef, state))
+        {
+            _activityRef = state;
+            MarkActive();
+        }
 
         var x = XInputMapper.Map(state, _settings.TouchpadAsBack);
         if (x != _lastSent)
@@ -113,6 +125,7 @@ public sealed class ControllerBridge : IDisposable
     {
         _largeMotor = e.LargeMotor;
         _smallMotor = e.SmallMotor;
+        if (e.LargeMotor > 0 || e.SmallMotor > 0) MarkActive(); // hra běží a vibruje
         bool playerChanged = e.LedNumber != _playerIndex;
         _playerIndex = e.LedNumber;
         UpdateOutput();
