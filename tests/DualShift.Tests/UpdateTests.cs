@@ -81,3 +81,38 @@ public class UpdateTests
         finally { File.Delete(f); }
     }
 }
+
+public class InstallEvaluationTests
+{
+    private static readonly Version Target = new(1, 22, 0, 0);
+
+    [Fact]
+    public void FailureCodeButNewVersionInstalled_IsSuccessWithRestart()
+    {
+        // ViGEmBus 1.22.0: druhá část instalace skončila 1603, ale verze 1.22.0 už je v systému.
+        var r = DualShift.Setup.DependencyInstaller.Evaluate(1603, Target, new Version(1, 22, 0, 0), working: false);
+        Assert.True(r.Success);
+        Assert.True(r.RestartRequired);
+    }
+
+    [Fact]
+    public void FailureCodeAndOldVersion_IsFailure()
+    {
+        var r = DualShift.Setup.DependencyInstaller.Evaluate(1603, Target, new Version(1, 21, 442, 0), working: true);
+        Assert.False(r.Success);
+    }
+
+    [Fact]
+    public void CancelledByUser_IsFailureEvenIfOldVersionWorks()
+    {
+        Assert.False(DualShift.Setup.DependencyInstaller.Evaluate(1602, Target, new Version(1, 21, 442, 0), working: true).Success);
+    }
+
+    [Fact]
+    public void Success_Working()
+    {
+        var r = DualShift.Setup.DependencyInstaller.Evaluate(0, Target, Target, working: true);
+        Assert.True(r.Success);
+        Assert.False(r.RestartRequired);
+    }
+}

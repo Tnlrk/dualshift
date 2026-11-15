@@ -84,6 +84,23 @@ public static class DependencyInstaller
     }
 
     /// <summary>
+    /// Vyhodnocení instalátoru. Instalátor ViGEmBus někdy skončí chybou (např. 1603), i když se nová
+    /// verze nainstalovala a jen čeká na restart – rozhoduje proto i to, jaká verze je teď v systému.
+    /// </summary>
+    internal static InstallResult Evaluate(int exitCode, Version target, Version? installedNow, bool working)
+    {
+        bool targetInstalled = installedNow is not null && installedNow >= target;
+        return exitCode switch
+        {
+            0 => working ? InstallResult.Ok : InstallResult.NeedsRestart,
+            3010 or 1641 => InstallResult.NeedsRestart,
+            1602 or 1223 => InstallResult.Failed(Loc.T("dep_cancelled")),
+            _ when targetInstalled => working ? InstallResult.Ok : InstallResult.NeedsRestart,
+            _ => InstallResult.Failed(Loc.F("dep_exitCode", exitCode)),
+        };
+    }
+
+    /// <summary>
     /// Stáhne nejnovější instalátor z GitHubu, ověří podpis Nefarius a spustí ho s právy správce (UAC).
     /// Soubor leží v nové náhodné složce a od ověření do spuštění je zamčený proti přepsání.
     /// </summary>
@@ -118,13 +135,7 @@ public static class DependencyInstaller
             using (p)
             {
                 await p.WaitForExitAsync();
-                return p.ExitCode switch
-                {
-                    0 => IsInstalled(d) ? InstallResult.Ok : InstallResult.NeedsRestart,
-                    3010 or 1641 => InstallResult.NeedsRestart,
-                    1602 or 1223 => InstallResult.Failed(Loc.T("dep_cancelled")),
-                    _ => IsInstalled(d) ? InstallResult.Ok : InstallResult.Failed(Loc.F("dep_exitCode", p.ExitCode)),
-                };
+                return Evaluate(p.ExitCode, release.Version, InstalledVersion(d), IsInstalled(d));
             }
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)

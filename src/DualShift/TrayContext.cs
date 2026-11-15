@@ -198,7 +198,8 @@ public sealed class TrayContext : ApplicationContext
             var tasks = _updates.LegacyTasks.ToList();
             string? error = null;
             bool ok = await Task.Run(() => LegacyUpdater.Fix(tasks, out error));
-            if (!ok) Notify("ViGEm", Loc.F("note_hidhideFailed", error), ToolTipIcon.Warning, force: true);
+            if (ok) Notify(Loc.T("note_legacyFixedTitle"), Loc.T("note_legacyFixedText"), ToolTipIcon.Info, force: true);
+            else Notify(Loc.T("note_legacyFixedTitle"), Loc.F("note_hidhideFailed", error), ToolTipIcon.Warning, force: true);
         }
         finally
         {

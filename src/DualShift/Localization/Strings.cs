@@ -131,6 +131,8 @@ public static class Strings
         // --- Aktualizace ---
         ["note_updatesTitle"] = "Je k dispozici aktualizace",
         ["note_updatesText"] = "{0} – podrobnosti najdeš v nápovědě (Zkontrolovat aktualizace).",
+        ["note_legacyFixedTitle"] = "Aktualizační úloha ViGEm",
+        ["note_legacyFixedText"] = "Zastaralá úloha byla odstraněna. Aktualizace teď hlídá DualShift.",
         ["note_legacyItem"] = "oprava zastaralé úlohy ViGEm",
         ["dlg_updateFailed"] = "Aktualizace se nepovedla.\n\n{0}",
         ["upd_title"] = "Aktualizace a ovladače",
@@ -294,6 +296,8 @@ public static class Strings
         // --- Aktualizace ---
         ["note_updatesTitle"] = "Updates available",
         ["note_updatesText"] = "{0} – see Help (Check for updates).",
+        ["note_legacyFixedTitle"] = "ViGEm update task",
+        ["note_legacyFixedText"] = "The outdated task was removed. DualShift now takes care of updates.",
         ["note_legacyItem"] = "fix for an outdated ViGEm task",
         ["dlg_updateFailed"] = "The update failed.\n\n{0}",
         ["upd_title"] = "Updates & drivers",
